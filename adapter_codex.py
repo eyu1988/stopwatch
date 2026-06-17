@@ -71,7 +71,7 @@ def main():
     project = os.path.basename(args.cwd.rstrip("/")) if args.cwd else "unknown"
 
     try:
-        core.write_entry(session_id, project, last_user, last_assistant)
+        core.write_entry(session_id, project, last_user, last_assistant, source="codex")
     except Exception as e:
         print(f"stopwatch/codex: write error: {e}", file=sys.stderr)
 

@@ -78,7 +78,7 @@ def find_session_callout(flat, day_start, day_end, sid):
     return -1
 
 
-def write_entry(session_id, project, user_text, ai_text):
+def write_entry(session_id, project, user_text, ai_text, source="default"):
     sid = session_id[:8] if session_id else "unknown"
     now = datetime.now(CST)
     time_str = now.strftime("%H:%M")
@@ -87,8 +87,9 @@ def write_entry(session_id, project, user_text, ai_text):
     user_text = truncate(user_text)
     ai_text = last_paragraph(ai_text)
 
-    os.makedirs(TIMELINE_DIR, exist_ok=True)
-    file_path = os.path.join(TIMELINE_DIR, f"{w_label}.md")
+    output_dir = os.path.join(TIMELINE_DIR, source)
+    os.makedirs(output_dir, exist_ok=True)
+    file_path = os.path.join(output_dir, f"{w_label}.md")
 
     if not os.path.isfile(file_path):
         hdr = session_callout_header(time_str, time_str, project, sid)
