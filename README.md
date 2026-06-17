@@ -20,12 +20,15 @@ Each session becomes a callout card. Starting a new session (`/clear`) creates a
 
 ```
 ~/.stopwatch/timeline/
-└── 2026-W25.md
-    ├── ## 06-16
-    │   ├── 💬 11:19–11:40 · project-a  ← session 1
-    │   └── 💬 14:02–14:35 · project-b  ← session 2 (after /clear)
-    └── ## 06-17
-        └── 💬 09:11–09:58 · project-a
+├── claude/
+│   └── 2026-W25.md
+│       ├── ## 06-16
+│       │   ├── 💬 11:19–11:40 · project-a  ← session 1
+│       │   └── 💬 14:02–14:35 · project-b  ← session 2 (after /clear)
+│       └── ## 06-17
+│           └── 💬 09:11–09:58 · project-a
+└── codex/
+    └── 2026-W25.md
 ```
 
 ## Install
