@@ -12,15 +12,26 @@ GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; RED='\033[0;31m'
 step()    { printf "  ${CYAN}·${RESET} $1\n"; }
 ok()      { printf "  ${GREEN}✓${RESET} $1\n"; }
 warn()    { printf "  ${YELLOW}!${RESET} $1\n"; }
-die()     { printf "  ${RED}✗${RESET} $1\n" >&2; exit 1; }
-ask()     {
-  # ask <question> <default>
-  printf "\n  ${YELLOW}?${RESET} ${BOLD}$1${RESET} ${DIM}(default: $2)${RESET}\n  › "
+die()     { printf "\n  ${RED}✗${RESET} $1\n\n" >&2; exit 1; }
+divider() { printf "\n  ${DIM}────────────────────────────────────${RESET}\n"; }
+ask() {
+  printf "\n  ${YELLOW}?${RESET} ${BOLD}$1${RESET}\n"
+  printf "    ${DIM}↵ to use default: $2${RESET}\n"
+  printf "  › "
 }
-divider() { printf "  ${DIM}────────────────────────────────────${RESET}\n"; }
+
+# unescape shell-escaped paths (e.g. Mobile\ Documents → Mobile Documents)
+clean_path() {
+  RAWPATH="$1" python3 << 'PYEOF'
+import os, re
+p = os.environ["RAWPATH"]
+p = re.sub(r'\\(.)', r'\1', p)   # strip all shell escape backslashes
+print(os.path.expanduser(p))
+PYEOF
+}
 
 # ── header ───────────────────────────────────────────────────────────────────
-printf "\n${BOLD}  stopwatch${RESET}  ${DIM}AI session timeline recorder${RESET}\n\n"
+printf "\n  ${BOLD}stopwatch${RESET}  ${DIM}AI session timeline recorder${RESET}\n"
 divider
 
 # ── preflight ────────────────────────────────────────────────────────────────
@@ -28,35 +39,30 @@ command -v python3 >/dev/null 2>&1 || die "python3 not found — please install 
 command -v curl    >/dev/null 2>&1 || die "curl not found"
 
 # ── download ─────────────────────────────────────────────────────────────────
-step "Downloading files to $INSTALL_DIR..."
+printf "\n"
+step "Downloading to $INSTALL_DIR ..."
 mkdir -p "$INSTALL_DIR"
 curl -fsSL "$REPO/core.py"           -o "$INSTALL_DIR/core.py"
 curl -fsSL "$REPO/adapter_claude.py" -o "$INSTALL_DIR/adapter_claude.py"
 curl -fsSL "$REPO/adapter_codex.py"  -o "$INSTALL_DIR/adapter_codex.py"
-ok "Files downloaded"
+ok "Files ready"
 
 # ── configure ────────────────────────────────────────────────────────────────
-printf "\n${BOLD}  Configuration${RESET}\n"
+printf "\n  ${BOLD}Configure${RESET}\n"
 
-DEFAULT_DIR="$HOME/.stopwatch/timeline"
-ask "Where should timeline files be saved?" "~/.stopwatch/timeline"
-read -r STOPWATCH_DIR
-STOPWATCH_DIR="${STOPWATCH_DIR:-$DEFAULT_DIR}"
-# pass via env var to avoid shell-escaping issues in Python
-STOPWATCH_DIR=$(RAWPATH="$STOPWATCH_DIR" python3 -c "
-import os
-p = os.environ['RAWPATH'].replace('\\ ', ' ')
-print(os.path.expanduser(p))
-")
+ask "Save timeline files to?" "~/.stopwatch/timeline"
+read -r INPUT_DIR
+STOPWATCH_DIR=$(clean_path "${INPUT_DIR:-$HOME/.stopwatch/timeline}")
 
-ask "Weekly file title (shown at top of each .md)" "stopwatch"
+ask "Weekly file title?" "stopwatch"
 read -r STOPWATCH_TITLE
 STOPWATCH_TITLE="${STOPWATCH_TITLE:-stopwatch}"
 
 printf "\n  ${YELLOW}?${RESET} ${BOLD}Which tools to enable?${RESET}\n"
-printf "    ${DIM}1)${RESET} Claude Code\n"
-printf "    ${DIM}2)${RESET} Codex CLI\n"
+printf "    ${DIM}1)${RESET} Claude Code  ${DIM}— Stop hook${RESET}\n"
+printf "    ${DIM}2)${RESET} Codex CLI    ${DIM}— shell wrapper${RESET}\n"
 printf "    ${DIM}3)${RESET} Both\n"
+printf "    ${DIM}↵ default: 1${RESET}\n"
 printf "  › "
 read -r TOOL_CHOICE
 case "$TOOL_CHOICE" in
@@ -66,20 +72,20 @@ case "$TOOL_CHOICE" in
 esac
 
 # ── confirm ──────────────────────────────────────────────────────────────────
-printf "\n"
 divider
+printf "\n"
 printf "  ${DIM}Directory${RESET}   $STOPWATCH_DIR\n"
 printf "  ${DIM}Title${RESET}       $STOPWATCH_TITLE\n"
 printf "  ${DIM}Tools${RESET}       $TOOL_LABEL\n"
 divider
-printf "\n  ${YELLOW}?${RESET} ${BOLD}Apply these settings?${RESET} ${DIM}[Y/n]${RESET} "
+printf "\n  ${YELLOW}?${RESET} ${BOLD}Confirm?${RESET} ${DIM}[Y/n]${RESET} "
 read -r CONFIRM
 case "$CONFIRM" in
-  [nN]*) printf "\n  Cancelled.\n\n"; exit 0 ;;
+  [nN]*) printf "\n  Aborted.\n\n"; exit 0 ;;
 esac
 
 # ── apply ────────────────────────────────────────────────────────────────────
-printf "\n${BOLD}  Applying${RESET}\n"
+printf "\n  ${BOLD}Installing${RESET}\n"
 mkdir -p "$STOPWATCH_DIR"
 
 if [ "$TOOL_CHOICE" = "1" ] || [ "$TOOL_CHOICE" = "3" ]; then
@@ -89,7 +95,7 @@ if [ "$TOOL_CHOICE" = "1" ] || [ "$TOOL_CHOICE" = "3" ]; then
   python3 - <<'PYEOF'
 import json, os
 
-settings_path = os.path.expanduser("~/.claude/settings.json")
+settings_path   = os.path.expanduser("~/.claude/settings.json")
 stopwatch_dir   = os.environ["STOPWATCH_DIR_VAL"]
 stopwatch_title = os.environ["STOPWATCH_TITLE_VAL"]
 hook_cmd        = os.environ["HOOK_CMD_VAL"]
@@ -140,13 +146,10 @@ codex() {
     ok "Added Codex wrapper → $SHELL_RC"
     warn "Run: source $SHELL_RC"
   else
-    ok "Codex wrapper already present in $SHELL_RC"
+    ok "Codex wrapper already in $SHELL_RC"
   fi
 fi
 
 # ── done ─────────────────────────────────────────────────────────────────────
-printf "\n"
 divider
-printf "  ${GREEN}${BOLD}Done!${RESET} stopwatch is ready.\n"
-divider
-printf "\n"
+printf "\n  ${GREEN}${BOLD}✓ Done!${RESET} stopwatch is ready.\n\n"
