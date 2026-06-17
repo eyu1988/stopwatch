@@ -78,7 +78,7 @@ Codex 的配置以内联变量的形式写在 `~/.codex/hooks.json` 的 Stop hoo
 ~/.stopwatch/
 ├── core.py             — 与工具无关的 Markdown 写入逻辑
 ├── adapter_claude.py   — Claude Code Stop hook 入口
-├── adapter_codex.py    — Codex CLI shell wrapper 入口
+├── adapter_codex.py    — Codex CLI Stop hook 入口
 └── install.sh
 ```
 

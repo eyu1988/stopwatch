@@ -78,7 +78,7 @@ For Codex, they are set inline in the Stop hook command written to `~/.codex/hoo
 ~/.stopwatch/
 ├── core.py             — tool-agnostic Markdown writer
 ├── adapter_claude.py   — Claude Code Stop hook entry point
-├── adapter_codex.py    — Codex CLI shell wrapper entry point
+├── adapter_codex.py    — Codex CLI Stop hook entry point
 └── install.sh
 ```
 
