@@ -184,7 +184,7 @@ if 0 in tool_indices:  # Claude
 if 1 in tool_indices:  # Codex — native Stop hook via ~/.codex/hooks.json
     CODEX_HOOK_CMD = (
         f'STOPWATCH_DIR="{stopwatch_dir}" STOPWATCH_TITLE="{title}" '
-        f'python3 ~/.stopwatch/adapter_codex.py 2>/dev/null || true'
+        f'python3 ~/.stopwatch/adapter_codex.py >> ~/.stopwatch/codex.log 2>&1 || true'
     )
     p = os.path.expanduser("~/.codex/hooks.json")
     try:
@@ -192,19 +192,22 @@ if 1 in tool_indices:  # Codex — native Stop hook via ~/.codex/hooks.json
     except (FileNotFoundError, json.JSONDecodeError):
         ch = {}
     ch.setdefault("hooks", {}).setdefault("Stop", [])
-    already = any(
-        h.get("command", "").startswith("python3 ~/.stopwatch/adapter_codex.py")
-        for e in ch["hooks"]["Stop"] for h in e.get("hooks", [])
+    sw_entry = {"hooks": [{"type": "command", "command": CODEX_HOOK_CMD, "timeout": 15}]}
+    already_idx = next(
+        (i for i, e in enumerate(ch["hooks"]["Stop"])
+         if any("adapter_codex" in h.get("command", "") for h in e.get("hooks", []))),
+        -1
     )
-    if not already:
-        ch["hooks"]["Stop"].append({"hooks": [{"type": "command", "command": CODEX_HOOK_CMD, "timeout": 15}]})
-    # always update env vars in existing stopwatch hook
+    if already_idx == -1:
+        ch["hooks"]["Stop"].insert(0, sw_entry)
     else:
-        for e in ch["hooks"]["Stop"]:
-            for h in e.get("hooks", []):
-                if h.get("command", "").startswith("python3 ~/.stopwatch/adapter_codex.py") or \
-                   "adapter_codex" in h.get("command", ""):
-                    h["command"] = CODEX_HOOK_CMD
+        # update command and ensure it's first
+        for h in ch["hooks"]["Stop"][already_idx].get("hooks", []):
+            if "adapter_codex" in h.get("command", ""):
+                h["command"] = CODEX_HOOK_CMD
+        if already_idx != 0:
+            entry = ch["hooks"]["Stop"].pop(already_idx)
+            ch["hooks"]["Stop"].insert(0, entry)
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "w") as f:
         json.dump(ch, f, indent=2, ensure_ascii=False)
