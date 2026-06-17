@@ -5,8 +5,6 @@ REPO="https://raw.githubusercontent.com/eyu1988/stopwatch/main"
 INSTALL_DIR="$HOME/.stopwatch"
 CLAUDE_HOOK_CMD="python3 ~/.stopwatch/adapter_claude.py 2>/dev/null || true"
 
-exec < /dev/tty
-
 echo "Installing stopwatch..."
 echo ""
 
