@@ -7,7 +7,7 @@ Automatically records every Claude Code conversation turn into weekly Markdown f
 Uses Claude Code's **Stop hook** — fires after every response. Each conversation session becomes a collapsible callout card. Starting a new session (`/clear`) creates a new card.
 
 ```
-06_AI对话录/
+stopwatch/
 └── 2026-W25.md
     ├── ## 06-16（周二）
     │   ├── 💬 11:19–11:40 · project-a  ← session 1
@@ -60,7 +60,7 @@ Then remove the `env.CLAUDE_TIMELINE_DIR` and `hooks.Stop` entries from `~/.clau
 基于 Claude Code 的 **Stop hook**——每次回复结束后自动触发。每个对话 session 生成一张独立卡片，执行 `/clear` 后开启新卡片。
 
 ```
-06_AI对话录/
+stopwatch/
 └── 2026-W25.md
     ├── ## 06-16（周二）
     │   ├── 💬 11:19–11:40 · 项目A   ← session 1

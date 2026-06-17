@@ -144,7 +144,7 @@ def main():
         if not os.path.isfile(file_path):
             hdr = session_callout_header(time_str, time_str, project, sid)
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(f"# AI对话录 {w_label}（{w_span}）\n\n")
+                f.write(f"# stopwatch {w_label}（{w_span}）\n\n")
                 f.write(f"{d_hdr}\n\n")
                 f.write(f"{hdr}\n")
                 f.write(make_entry(time_str, user_text, claude_text))
