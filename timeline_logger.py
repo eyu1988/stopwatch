@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 TIMELINE_DIR = os.environ.get(
     "CLAUDE_TIMELINE_DIR",
-    os.path.expanduser("~/Library/Mobile Documents/com~apple~CloudDocs/02_AINote/MyClaude/06_AI对话录")
+    os.path.expanduser("~/Documents/stopwatch")
 )
 CST = timezone(timedelta(hours=8))
 WEEKDAYS_ZH = ["一", "二", "三", "四", "五", "六", "日"]
