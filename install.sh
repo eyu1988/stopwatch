@@ -20,7 +20,10 @@ curl -fsSL "$REPO/adapter_claude.py" -o "$INSTALL_DIR/adapter_claude.py"
 curl -fsSL "$REPO/adapter_codex.py"  -o "$INSTALL_DIR/adapter_codex.py"
 printf "  ${GREEN}✓${RESET} Files ready\n"
 
-INSTALL_DIR="$INSTALL_DIR" python3 - << 'PYEOF'
+# write Python UI to a temp file so stdin stays connected to the terminal
+_PYUI=$(mktemp /tmp/stopwatch_XXXXXX.py)
+trap 'rm -f "$_PYUI"' EXIT
+cat > "$_PYUI" << 'PYEOF'
 import sys, os, tty, termios, json, re
 
 try:
@@ -204,3 +207,4 @@ if tool_key in ("codex", "both"):
 divider()
 print(f"\n  {G}{B}✓ Done!{R} stopwatch is ready.\n")
 PYEOF
+INSTALL_DIR="$INSTALL_DIR" python3 "$_PYUI"
