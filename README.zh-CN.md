@@ -34,7 +34,7 @@
 ## 安装
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eyu1988/stopwatch/main/install.sh -o /tmp/stopwatch-install.sh && sh /tmp/stopwatch-install.sh
+sh <(curl -fsSL https://raw.githubusercontent.com/eyu1988/stopwatch/main/install.sh)
 ```
 
 安装过程中会依次询问：

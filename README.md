@@ -34,7 +34,7 @@ Each session becomes a callout card. Starting a new session (`/clear`) creates a
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/eyu1988/stopwatch/main/install.sh -o /tmp/stopwatch-install.sh && sh /tmp/stopwatch-install.sh
+sh <(curl -fsSL https://raw.githubusercontent.com/eyu1988/stopwatch/main/install.sh)
 ```
 
 The installer will ask:
