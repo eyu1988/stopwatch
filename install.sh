@@ -162,7 +162,7 @@ if not ask_confirm("Apply?"):
 print(f"\n  {B}Installing{R}")
 os.makedirs(stopwatch_dir, exist_ok=True)
 
-if tool_key in ("claude", "both"):
+if 0 in tool_indices:  # Claude
     p = os.path.expanduser("~/.claude/settings.json")
     try:
         with open(p) as f: s = json.load(f)
@@ -181,28 +181,35 @@ if tool_key in ("claude", "both"):
         f.write("\n")
     ok("Updated ~/.claude/settings.json")
 
-if tool_key in ("codex", "both"):
-    rc = os.path.expanduser("~/.zshrc")
-    if os.path.exists(os.path.expanduser("~/.bashrc")):
-        rc = os.path.expanduser("~/.bashrc")
-    wrapper = (
-        f'\n# stopwatch — Codex session logger\n'
-        f'codex() {{\n'
-        f'  command codex "$@"\n'
-        f'  STOPWATCH_DIR="{stopwatch_dir}" STOPWATCH_TITLE="{title}" \\\n'
-        f'    python3 ~/.stopwatch/adapter_codex.py --cwd "$PWD" 2>/dev/null || true\n'
-        f'}}'
+if 1 in tool_indices:  # Codex — native Stop hook via ~/.codex/hooks.json
+    CODEX_HOOK_CMD = (
+        f'STOPWATCH_DIR="{stopwatch_dir}" STOPWATCH_TITLE="{title}" '
+        f'python3 ~/.stopwatch/adapter_codex.py 2>/dev/null || true'
     )
+    p = os.path.expanduser("~/.codex/hooks.json")
     try:
-        already = "stopwatch — Codex" in open(rc).read()
-    except FileNotFoundError:
-        already = False
+        with open(p) as f: ch = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        ch = {}
+    ch.setdefault("hooks", {}).setdefault("Stop", [])
+    already = any(
+        h.get("command", "").startswith("python3 ~/.stopwatch/adapter_codex.py")
+        for e in ch["hooks"]["Stop"] for h in e.get("hooks", [])
+    )
     if not already:
-        with open(rc, "a") as f: f.write(wrapper + "\n")
-        ok(f"Added Codex wrapper → {rc}")
-        warn(f"Run: source {rc}")
+        ch["hooks"]["Stop"].append({"hooks": [{"type": "command", "command": CODEX_HOOK_CMD, "timeout": 15}]})
+    # always update env vars in existing stopwatch hook
     else:
-        ok(f"Codex wrapper already in {rc}")
+        for e in ch["hooks"]["Stop"]:
+            for h in e.get("hooks", []):
+                if h.get("command", "").startswith("python3 ~/.stopwatch/adapter_codex.py") or \
+                   "adapter_codex" in h.get("command", ""):
+                    h["command"] = CODEX_HOOK_CMD
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, "w") as f:
+        json.dump(ch, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    ok("Updated ~/.codex/hooks.json (native Stop hook)")
 
 divider()
 print(f"\n  {G}{B}✓ Done!{R} stopwatch is ready.\n")

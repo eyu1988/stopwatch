@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
 adapter_codex.py — OpenAI Codex CLI adapter
-Codex does not have a built-in hook system. Use a shell wrapper instead:
 
-  # ~/.zshrc or ~/.bashrc
-  codex() {
-    command codex "$@"
-    python3 ~/.stopwatch/adapter_codex.py --cwd "$PWD"
-  }
+Codex stores sessions at:
+  ~/.codex/sessions/YYYY/MM/DD/rollout-<ts>-<session_id>.jsonl
 
-Codex stores sessions at: ~/.codex/sessions/<session_id>.json (verify on your machine)
-This adapter reads the most recently modified session file.
+Each line is a JSON event. Relevant types:
+  { "type": "event_msg", "payload": { "type": "user_message",  "message": "..." } }
+  { "type": "event_msg", "payload": { "type": "task_complete", "last_agent_message": "..." } }
+  { "type": "session_meta", "payload": { "id": "<session_id>", "cwd": "..." } }
+
+Codex supports a native Stop hook via ~/.codex/hooks.json (same schema as Claude).
+The install script writes to that file — no shell wrapper needed.
 """
 import sys
 import os
@@ -25,36 +26,48 @@ CODEX_SESSIONS_DIR = os.path.expanduser("~/.codex/sessions")
 
 
 def find_latest_session():
-    pattern = os.path.join(CODEX_SESSIONS_DIR, "*.json")
-    files = glob.glob(pattern)
+    pattern = os.path.join(CODEX_SESSIONS_DIR, "**", "*.jsonl")
+    files = glob.glob(pattern, recursive=True)
     if not files:
         return None
     return max(files, key=os.path.getmtime)
 
 
 def parse_session(session_path):
+    session_id = os.path.basename(session_path).replace(".jsonl", "")
+    cwd = None
+    last_user = ""
+    last_assistant = ""
+
     with open(session_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                continue
 
-    last_user, last_assistant = "", ""
-    messages = data if isinstance(data, list) else data.get("messages", [])
-    for msg in messages:
-        role = msg.get("role", "")
-        content = msg.get("content", "")
-        if isinstance(content, list):
-            content = "\n".join(p.get("text", "") for p in content if p.get("type") == "text")
-        if role == "user":
-            last_user = content
-        elif role == "assistant":
-            last_assistant = content
+            t = obj.get("type")
+            payload = obj.get("payload", {})
 
-    session_id = data.get("id", os.path.basename(session_path)) if isinstance(data, dict) else os.path.basename(session_path)
-    return session_id, last_user, last_assistant
+            if t == "session_meta":
+                session_id = payload.get("id", session_id)
+                cwd = payload.get("cwd")
+            elif t == "event_msg":
+                pt = payload.get("type", "")
+                if pt == "user_message":
+                    last_user = payload.get("message", "")
+                elif pt == "task_complete":
+                    last_assistant = payload.get("last_agent_message", "")
+
+    return session_id, cwd, last_user, last_assistant
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cwd", default=os.getcwd())
+    parser.add_argument("--cwd", default=None)
     args = parser.parse_args()
 
     session_path = find_latest_session()
@@ -63,12 +76,13 @@ def main():
         return
 
     try:
-        session_id, last_user, last_assistant = parse_session(session_path)
+        session_id, file_cwd, last_user, last_assistant = parse_session(session_path)
     except Exception as e:
         print(f"stopwatch/codex: parse error: {e}", file=sys.stderr)
         return
 
-    project = os.path.basename(args.cwd.rstrip("/")) if args.cwd else "unknown"
+    cwd = args.cwd or file_cwd or os.getcwd()
+    project = os.path.basename(cwd.rstrip("/")) if cwd else "unknown"
 
     try:
         core.write_entry(session_id, project, last_user, last_assistant, source="codex")
