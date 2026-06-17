@@ -24,10 +24,10 @@ curl -fsSL "$REPO/timeline_logger.py" -o "$INSTALL_DIR/timeline_logger.py"
 # 询问存储目录
 echo ""
 printf "Timeline directory (where .md files are saved)\n"
-printf "Default: ~/Documents/stopwatch\n"
+printf "Default: ~/.claude-timeline/timeline\n"
 printf "> "
 read -r TIMELINE_DIR
-TIMELINE_DIR="${TIMELINE_DIR:-$HOME/Documents/stopwatch}"
+TIMELINE_DIR="${TIMELINE_DIR:-$HOME/.claude-timeline/timeline}"
 # 展开 ~
 TIMELINE_DIR=$(python3 -c "import os; print(os.path.expanduser('$TIMELINE_DIR'))")
 mkdir -p "$TIMELINE_DIR"

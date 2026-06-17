@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 TIMELINE_DIR = os.environ.get(
     "CLAUDE_TIMELINE_DIR",
-    os.path.expanduser("~/Documents/stopwatch")
+    os.path.expanduser("~/.claude-timeline/timeline")
 )
 TIMELINE_TITLE = os.environ.get("CLAUDE_TIMELINE_TITLE", "stopwatch")
 CST = timezone(timedelta(hours=8))

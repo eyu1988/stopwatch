@@ -24,7 +24,7 @@ stopwatch/
 curl -fsSL https://raw.githubusercontent.com/eyu1988/stopwatch/main/install.sh | sh
 ```
 
-The script will ask where to save timeline files. Leave blank to use the default (`~/Documents/stopwatch`).
+The script will ask where to save timeline files. Leave blank to use the default (`~/.claude-timeline/timeline`).
 
 ## Requirements
 

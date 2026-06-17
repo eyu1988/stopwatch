@@ -24,7 +24,7 @@ stopwatch/
 curl -fsSL https://raw.githubusercontent.com/eyu1988/stopwatch/main/install.sh | sh
 ```
 
-执行后会提示选择时间线文件的保存目录，直接回车使用默认路径（`~/Documents/stopwatch`）。
+执行后会提示选择时间线文件的保存目录，直接回车使用默认路径（`~/.claude-timeline/timeline`）。
 
 ## 环境要求
 
