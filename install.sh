@@ -55,22 +55,16 @@ def getch():
 
 # ── text input with pre-filled default ───────────────────────────────────────
 def ask_text(q, default=''):
-    sys.stdout.write(f"\n  {Y}?{R} {B}{q}{R}\n  {D}❯{R} ")
-    sys.stdout.flush()
     if HAS_RL:
         readline.set_startup_hook(lambda: readline.insert_text(default))
     try:
-        val = input()
+        val = input(f"\n  {Y}?{R} {B}{q}{R}\n  {D}›{R} ")
     except (EOFError, KeyboardInterrupt):
         print(); sys.exit(0)
     finally:
         if HAS_RL:
             readline.set_startup_hook(None)
-    result = val.strip() or default
-    # rewrite the two lines with a ✓ summary
-    sys.stdout.write(f'\033[2A\033[J  {G}✓{R} {B}{q}{R}  {result}\n')
-    sys.stdout.flush()
-    return result
+    return val.strip() or default
 
 # ── arrow-key single-select ───────────────────────────────────────────────────
 def ask_select(q, opts, hints=None, default=0):
