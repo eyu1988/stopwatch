@@ -2,19 +2,29 @@
 
 # stopwatch
 
-自动将每次 Claude Code 对话记录到按周归档的 Markdown 文件中，按 session 分组，适配 Obsidian 阅读模式。
+自动将 AI 编程助手的对话记录到按周归档的 Markdown 文件中，按 session 分组，适配 Obsidian 阅读模式。
+
+支持 **Claude Code** 和 **Codex CLI**。
 
 ## 工作原理
 
-基于 Claude Code 的 **Stop hook**——每次回复结束后自动触发。每个对话 session 生成一张独立卡片，执行 `/clear` 后开启新卡片。
+每个工具在回复结束后触发 hook，adapter 解析该工具的 transcript 格式，将最后一轮对话交给公共写入核心处理。
 
 ```
-stopwatch/
+工具 hook 触发
+  → adapter_claude.py / adapter_codex.py   （解析 transcript）
+    → core.py                               （写入 Markdown）
+```
+
+每个 session 生成一张独立卡片，执行 `/clear` 后开启新卡片。
+
+```
+~/.stopwatch/timeline/
 └── 2026-W25.md
-    ├── ## 06-16（周二）
+    ├── ## 06-16
     │   ├── 💬 11:19–11:40 · 项目A   ← session 1
     │   └── 💬 14:02–14:35 · 项目B   ← session 2（/clear 后）
-    └── ## 06-17（周三）
+    └── ## 06-17
         └── 💬 09:11–09:58 · 项目A
 ```
 
@@ -24,29 +34,56 @@ stopwatch/
 curl -fsSL https://raw.githubusercontent.com/eyu1988/stopwatch/main/install.sh | sh
 ```
 
-执行后会提示选择时间线文件的保存目录，直接回车使用默认路径（`~/.claude-timeline/timeline`）。
+安装过程中会依次询问：
+1. 时间线文件的保存目录（默认：`~/.stopwatch/timeline`）
+2. 周文件标题（默认：`stopwatch`）
+3. 启用哪些工具——仅 Claude / 仅 Codex / 两者都启用
 
 ## 环境要求
 
-- [Claude Code](https://claude.ai/code)
 - Python 3
+- [Claude Code](https://claude.ai/code) 和/或 [Codex CLI](https://github.com/openai/codex)
 
 ## 配置
 
-安装脚本会在 `~/.claude/settings.json` 中写入 `CLAUDE_TIMELINE_DIR`。安装后如需修改保存路径，直接编辑该值：
+两个环境变量控制行为：
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `STOPWATCH_DIR` | `~/.stopwatch/timeline` | `.md` 文件保存路径 |
+| `STOPWATCH_TITLE` | `stopwatch` | 每个周文件顶部的标题 |
+
+Claude 的配置写在 `~/.claude/settings.json`：
 
 ```json
 {
   "env": {
-    "CLAUDE_TIMELINE_DIR": "/your/new/path"
+    "STOPWATCH_DIR": "/your/path",
+    "STOPWATCH_TITLE": "your title"
   }
 }
 ```
 
+Codex 的配置以内联变量的形式写在 `~/.zshrc` 的 wrapper 函数中。
+
+## 架构
+
+```
+~/.stopwatch/
+├── core.py             — 与工具无关的 Markdown 写入逻辑
+├── adapter_claude.py   — Claude Code Stop hook 入口
+├── adapter_codex.py    — Codex CLI shell wrapper 入口
+└── install.sh
+```
+
+新增工具支持只需添加一个 adapter，`core.py` 不需要改动。
+
 ## 卸载
 
 ```bash
-rm -rf ~/.claude-timeline
+rm -rf ~/.stopwatch
 ```
 
-然后手动删除 `~/.claude/settings.json` 中的 `env.CLAUDE_TIMELINE_DIR` 和 `hooks.Stop` 条目。
+Claude：从 `~/.claude/settings.json` 中删除 `env.STOPWATCH_DIR`、`env.STOPWATCH_TITLE` 和 `hooks.Stop`。
+
+Codex：从 `~/.zshrc` 中删除 `codex()` wrapper 函数。
