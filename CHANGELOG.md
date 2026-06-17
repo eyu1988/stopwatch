@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-06-17
+
+### Added
+- Codex native Stop hook: install now writes to `~/.codex/hooks.json` instead of injecting a shell wrapper into `~/.zshrc`
+
+### Fixed
+- Codex adapter now correctly reads session files at `~/.codex/sessions/YYYY/MM/DD/*.jsonl` (recursive, date-partitioned structure)
+- Codex adapter parses `event_msg` event stream format: `user_message.message` for user input, `task_complete.last_agent_message` for final AI response; also extracts `session_id` and `cwd` from `session_meta`
+
+### Changed
+- Installer tools selection replaced with lark-style multi-select: `•`/`✓` checkboxes, `>` cursor, space=toggle, enter=confirm; "Both" option removed in favor of independent checkboxes
+- Text input prompts now display `[default]` hint so the fallback value is always visible
+- Removed zshrc shell wrapper approach for Codex; both Claude and Codex now use native Stop hooks
+
 ## [0.3.0] - 2026-06-16
 
 ### Added
