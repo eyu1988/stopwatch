@@ -142,7 +142,7 @@ title = ask_text("Weekly file title", "stopwatch")
 tool_indices = ask_multiselect(
     "Tools to enable",
     opts  = ["Claude Code", "Codex CLI"],
-    hints = ["Stop hook", "shell wrapper"],
+    hints = ["Stop hook", "hooks.json"],
     default_selected = [0],
 )
 tool_key   = "both" if set(tool_indices) == {0, 1} else ("claude" if 0 in tool_indices else "codex")
