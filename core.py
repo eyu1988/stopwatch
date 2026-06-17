@@ -43,8 +43,15 @@ def day_header(date):
     return f"## {date.strftime('%m-%d')}（周{WEEKDAYS_ZH[date.weekday()]}）"
 
 
-def session_callout_header(start_time, end_time, project, sid):
-    return f"> [!quote] 💬 {start_time}–{end_time} · {project} <!-- sid:{sid} -->"
+def round_to_hour(dt):
+    rounded = dt.replace(minute=0, second=0, microsecond=0)
+    if dt.minute >= 30:
+        rounded += timedelta(hours=1)
+    return rounded.strftime("%H:00")
+
+
+def session_callout_header(hour_str, title, sid):
+    return f"> [!quote] 💬 {hour_str} · {title} <!-- sid:{sid} -->"
 
 
 def make_entry(time_str, user_text, ai_text, with_sep=False):
@@ -82,17 +89,19 @@ def write_entry(session_id, project, user_text, ai_text, source="default"):
     sid = session_id[:8] if session_id else "unknown"
     now = datetime.now(CST)
     time_str = now.strftime("%H:%M")
+    hour_str = round_to_hour(now)
     w_label, w_span = week_info(now)
     d_hdr = day_header(now)
     user_text = truncate(user_text)
     ai_text = last_paragraph(ai_text)
+    session_title = truncate(user_text, limit=40)
 
     output_dir = os.path.join(TIMELINE_DIR, source)
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, f"{w_label}.md")
 
     if not os.path.isfile(file_path):
-        hdr = session_callout_header(time_str, time_str, project, sid)
+        hdr = session_callout_header(hour_str, session_title, sid)
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(f"# {TIMELINE_TITLE} {w_label}（{w_span}）\n\n")
             f.write(f"{d_hdr}\n\n")
@@ -107,7 +116,7 @@ def write_entry(session_id, project, user_text, ai_text, source="default"):
     day_start, day_end = find_section(flat, d_hdr)
 
     if day_start == -1:
-        hdr = session_callout_header(time_str, time_str, project, sid)
+        hdr = session_callout_header(hour_str, session_title, sid)
         block = f"\n{d_hdr}\n\n{hdr}\n{make_entry(time_str, user_text, ai_text)}"
         with open(file_path, "a", encoding="utf-8") as f:
             f.write(block)
@@ -116,15 +125,11 @@ def write_entry(session_id, project, user_text, ai_text, source="default"):
     c_start = find_session_callout(flat, day_start, day_end, sid)
 
     if c_start == -1:
-        hdr = session_callout_header(time_str, time_str, project, sid)
+        hdr = session_callout_header(hour_str, session_title, sid)
         new_block = f"\n{hdr}\n{make_entry(time_str, user_text, ai_text)}"
         lines.insert(day_end, new_block)
     else:
-        old_hdr = flat[c_start]
-        m = re.search(r'💬 (\d{2}:\d{2})–\d{2}:\d{2}', old_hdr)
-        start_time = m.group(1) if m else time_str
-        new_hdr = session_callout_header(start_time, time_str, project, sid)
-        lines[c_start] = new_hdr + "\n"
+        # header is frozen after creation: title = first user message, time = creation hour
         c_end = callout_end(flat, c_start)
         lines.insert(c_end, make_entry(time_str, user_text, ai_text, with_sep=True))
 
