@@ -5,6 +5,8 @@ REPO="https://raw.githubusercontent.com/eyu1988/stopwatch/main"
 INSTALL_DIR="$HOME/.stopwatch"
 CLAUDE_HOOK_CMD="python3 ~/.stopwatch/adapter_claude.py 2>/dev/null || true"
 
+exec < /dev/tty
+
 echo "Installing stopwatch..."
 echo ""
 
@@ -25,7 +27,7 @@ echo ""
 printf "Timeline directory (where .md files are saved)\n"
 printf "Default: ~/.stopwatch/timeline\n"
 printf "> "
-read -r STOPWATCH_DIR </dev/tty
+read -r STOPWATCH_DIR
 STOPWATCH_DIR="${STOPWATCH_DIR:-$HOME/.stopwatch/timeline}"
 STOPWATCH_DIR=$(python3 -c "import os; print(os.path.expanduser('$STOPWATCH_DIR'))")
 mkdir -p "$STOPWATCH_DIR"
@@ -35,7 +37,7 @@ echo ""
 printf "Weekly file title (shown at the top of each .md file)\n"
 printf "Default: stopwatch\n"
 printf "> "
-read -r STOPWATCH_TITLE </dev/tty
+read -r STOPWATCH_TITLE
 STOPWATCH_TITLE="${STOPWATCH_TITLE:-stopwatch}"
 
 # 选择工具
@@ -43,7 +45,7 @@ echo ""
 printf "Which tools to enable? [1] Claude only  [2] Codex only  [3] Both\n"
 printf "Default: 1\n"
 printf "> "
-read -r TOOL_CHOICE </dev/tty
+read -r TOOL_CHOICE
 TOOL_CHOICE="${TOOL_CHOICE:-1}"
 
 # 更新 Claude settings.json
