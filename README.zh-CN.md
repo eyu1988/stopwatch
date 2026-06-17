@@ -40,7 +40,7 @@ sh <(curl -fsSL https://raw.githubusercontent.com/eyu1988/stopwatch/main/install
 安装过程中会依次询问：
 1. 时间线文件的保存目录（默认：`~/.stopwatch/timeline`）
 2. 周文件标题（默认：`stopwatch`）
-3. 启用哪些工具——仅 Claude / 仅 Codex / 两者都启用
+3. 启用哪些工具——Claude Code 和/或 Codex CLI（多选复选框）
 
 ## 环境要求
 

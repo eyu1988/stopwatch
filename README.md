@@ -40,7 +40,7 @@ sh <(curl -fsSL https://raw.githubusercontent.com/eyu1988/stopwatch/main/install
 The installer will ask:
 1. Where to save timeline files (default: `~/.stopwatch/timeline`)
 2. Weekly file title (default: `stopwatch`)
-3. Which tools to enable — Claude only / Codex only / Both
+3. Which tools to enable — Claude Code and/or Codex CLI (checkbox, multi-select)
 
 ## Requirements
 

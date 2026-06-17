@@ -61,7 +61,7 @@ def ask_text(q, default=''):
     if HAS_RL:
         readline.set_startup_hook(lambda: readline.insert_text(default))
     try:
-        val = input(f"\n  {Y}?{R} {B}{q}{R}\n  {D}›{R} ")
+        val = input(f"\n  {Y}?{R} {B}{q}{R}  {D}[{default}]{R}\n  {D}›{R} ")
     except (EOFError, KeyboardInterrupt):
         print(); sys.exit(0)
     finally:
@@ -69,56 +69,57 @@ def ask_text(q, default=''):
             readline.set_startup_hook(None)
     return val.strip() or default
 
-# ── arrow-key single-select ───────────────────────────────────────────────────
-def ask_select(q, opts, hints=None, default=0):
-    """
-    opts  : list of option labels
-    hints : optional sub-labels (same length), shown dimmed after each option
-    """
-    cur = [default]
-    n   = len(opts)
+# ── multi-select: space=toggle ↑↓=move enter=confirm ─────────────────────────
+def ask_multiselect(q, opts, hints=None, default_selected=None):
+    selected = set(default_selected or [])
+    cur      = [0]
+    n        = len(opts)
+    HINT_BAR = f"  {D}space=toggle  ↑↓=move  enter=confirm{R}"
 
     def render_opts():
         for i, o in enumerate(opts):
-            h = f"  {D}{hints[i]}{R}" if hints else ""
-            if i == cur[0]:
-                sys.stdout.write(f"  {G}❯{R} {o}{h}\n")
-            else:
-                sys.stdout.write(f"    {D}{o}{R}\n")
+            h      = f"  {D}{hints[i]}{R}" if hints and hints[i] else ""
+            check  = f"{G}✓{R}" if i in selected else f"{D}•{R}"
+            cursor = f"{G}>{R}" if i == cur[0] else " "
+            label  = f"{G}{o}{R}" if i in selected else (f"{B}{o}{R}" if i == cur[0] else o)
+            sys.stdout.write(f"  {cursor} {check} {label}{h}\n")
 
-    # initial draw: blank line + prompt + options
+    # initial draw: blank + prompt + opts + hint  (total = n+3 lines)
     sys.stdout.write(f"\n  {Y}?{R} {B}{q}{R}\n")
     render_opts()
+    sys.stdout.write(f"{HINT_BAR}\n")
     sys.stdout.flush()
 
     while True:
         k = getch()
 
-        if k in (b'\r', b'\n', b' '):
-            # clear block (blank + prompt + n options) and show ✓ line
-            sys.stdout.write(f'\033[{n + 2}A\033[J')
-            sys.stdout.write(f"  {G}✓{R} {B}{q}{R}  {G}{opts[cur[0]]}{R}\n")
+        if k in (b'\r', b'\n'):
+            if not selected:             # require at least one
+                selected.add(0)
+            # clear block and show ✓ summary  (n+3 lines up)
+            sys.stdout.write(f'\033[{n + 3}A\033[J')
+            label = " + ".join(opts[i] for i in sorted(selected))
+            sys.stdout.write(f"  {G}✓{R} {B}{q}{R}  {G}{label}{R}\n")
             sys.stdout.flush()
-            return cur[0]
+            return sorted(selected)
 
-        elif k == b'\x03':  # Ctrl-C
+        elif k == b' ':
+            if cur[0] in selected: selected.discard(cur[0])
+            else:                  selected.add(cur[0])
+
+        elif k == b'\x03':
             print(); sys.exit(0)
-
-        elif k in (b'\x1b[A', b'k'):  # ↑
+        elif k in (b'\x1b[A', b'k'):
             cur[0] = (cur[0] - 1) % n
-        elif k in (b'\x1b[B', b'j'):  # ↓
+        elif k in (b'\x1b[B', b'j'):
             cur[0] = (cur[0] + 1) % n
         else:
             continue
 
-        # redraw only the option lines
-        sys.stdout.write(f'\033[{n}A')
-        for i, o in enumerate(opts):
-            h = f"  {D}{hints[i]}{R}" if hints else ""
-            if i == cur[0]:
-                sys.stdout.write(f"\033[2K  {G}❯{R} {o}{h}\n")
-            else:
-                sys.stdout.write(f"\033[2K    {D}{o}{R}\n")
+        # redraw opts + hint bar  (n+1 lines up from cursor)
+        sys.stdout.write(f'\033[{n + 1}A')
+        render_opts()
+        sys.stdout.write(f"\033[2K{HINT_BAR}\n")
         sys.stdout.flush()
 
 # ── single-keypress confirm ───────────────────────────────────────────────────
@@ -138,15 +139,14 @@ stopwatch_dir = os.path.expanduser(re.sub(r'\\(.)', r'\1', raw_dir))
 
 title = ask_text("Weekly file title", "stopwatch")
 
-tool_i = ask_select(
+tool_indices = ask_multiselect(
     "Tools to enable",
-    opts  = ["Claude Code", "Codex CLI", "Both"],
-    hints = ["Stop hook", "shell wrapper", ""],
+    opts  = ["Claude Code", "Codex CLI"],
+    hints = ["Stop hook", "shell wrapper"],
+    default_selected = [0],
 )
-TOOL_KEYS   = ["claude", "codex", "both"]
-TOOL_LABELS = ["Claude Code", "Codex CLI", "Claude Code + Codex CLI"]
-tool_key    = TOOL_KEYS[tool_i]
-tool_label  = TOOL_LABELS[tool_i]
+tool_key   = "both" if set(tool_indices) == {0, 1} else ("claude" if 0 in tool_indices else "codex")
+tool_label = " + ".join(["Claude Code", "Codex CLI"][i] for i in tool_indices)
 
 # ── confirm ───────────────────────────────────────────────────────────────────
 divider()
