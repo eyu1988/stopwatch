@@ -8,13 +8,16 @@ Supports **Claude Code** and **Codex CLI**.
 
 ## How it works
 
-Each tool's hook fires after a response. The adapter parses that tool's transcript format and passes the last turn to the shared core writer.
+Each tool's Stop hook fires after a response. The adapter parses that tool's transcript format and passes the last turn to the shared core writer.
 
 ```
-Tool hook fires
-  → adapter_claude.py / adapter_codex.py   (parse transcript)
-    → core.py                               (write Markdown)
+Tool Stop hook fires
+  → adapter_claude.py  (reads ~/.claude/projects/…/*.jsonl)
+  → adapter_codex.py   (reads ~/.codex/sessions/YYYY/MM/DD/*.jsonl)
+    → core.py          (writes Markdown)
 ```
+
+Both tools use native Stop hook configuration — Claude via `~/.claude/settings.json`, Codex via `~/.codex/hooks.json`.
 
 Each session becomes a callout card. Starting a new session (`/clear`) creates a new card.
 
@@ -67,7 +70,7 @@ For Claude, these are set in `~/.claude/settings.json`:
 }
 ```
 
-For Codex, they are set inline in the shell wrapper added to `~/.zshrc`.
+For Codex, they are set inline in the Stop hook command written to `~/.codex/hooks.json`.
 
 ## Architecture
 
@@ -89,4 +92,4 @@ rm -rf ~/.stopwatch
 
 For Claude: remove `env.STOPWATCH_DIR`, `env.STOPWATCH_TITLE`, and `hooks.Stop` from `~/.claude/settings.json`.
 
-For Codex: remove the `codex()` wrapper function from `~/.zshrc`.
+For Codex: remove the stopwatch entry from `hooks.Stop` in `~/.codex/hooks.json`.
