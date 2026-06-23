@@ -24,7 +24,7 @@ printf "  ${GREEN}✓${RESET} Files ready\n"
 _PYUI=$(mktemp /tmp/stopwatch_XXXXXX.py)
 trap 'rm -f "$_PYUI"' EXIT
 cat > "$_PYUI" << 'PYEOF'
-import sys, os, tty, termios, json, re
+import sys, os, tty, termios, json, re, shlex
 
 try:
     import readline
@@ -182,37 +182,37 @@ if 0 in tool_indices:  # Claude
     ok("Updated ~/.claude/settings.json")
 
 if 1 in tool_indices:  # Codex — native Stop hook via ~/.codex/hooks.json
+    codex_home = os.path.expanduser(os.environ.get("CODEX_HOME", "~/.codex"))
     CODEX_HOOK_CMD = (
-        f'STOPWATCH_DIR="{stopwatch_dir}" STOPWATCH_TITLE="{title}" '
+        f'STOPWATCH_DIR={shlex.quote(stopwatch_dir)} '
+        f'STOPWATCH_TITLE={shlex.quote(title)} '
         f'python3 ~/.stopwatch/adapter_codex.py >> ~/.stopwatch/codex.log 2>&1 || true'
     )
-    p = os.path.expanduser("~/.codex/hooks.json")
+    p = os.path.join(codex_home, "hooks.json")
     try:
         with open(p) as f: ch = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         ch = {}
     ch.setdefault("hooks", {}).setdefault("Stop", [])
-    sw_entry = {"hooks": [{"type": "command", "command": CODEX_HOOK_CMD, "timeout": 15}]}
-    already_idx = next(
-        (i for i, e in enumerate(ch["hooks"]["Stop"])
-         if any("adapter_codex" in h.get("command", "") for h in e.get("hooks", []))),
-        -1
+    already = any(
+        "adapter_codex.py" in h.get("command", "")
+        for e in ch["hooks"]["Stop"] for h in e.get("hooks", [])
     )
-    if already_idx == -1:
-        ch["hooks"]["Stop"].insert(0, sw_entry)
+    if not already:
+        ch["hooks"]["Stop"].append({"hooks": [{"type": "command", "command": CODEX_HOOK_CMD, "timeout": 15}]})
+    # always update env vars in existing stopwatch hook
     else:
-        # update command and ensure it's first
-        for h in ch["hooks"]["Stop"][already_idx].get("hooks", []):
-            if "adapter_codex" in h.get("command", ""):
-                h["command"] = CODEX_HOOK_CMD
-        if already_idx != 0:
-            entry = ch["hooks"]["Stop"].pop(already_idx)
-            ch["hooks"]["Stop"].insert(0, entry)
+        for e in ch["hooks"]["Stop"]:
+            for h in e.get("hooks", []):
+                if h.get("command", "").startswith("python3 ~/.stopwatch/adapter_codex.py") or \
+                   "adapter_codex" in h.get("command", ""):
+                    h["command"] = CODEX_HOOK_CMD
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "w") as f:
         json.dump(ch, f, indent=2, ensure_ascii=False)
         f.write("\n")
-    ok("Updated ~/.codex/hooks.json (native Stop hook)")
+    ok(f"Updated {p} (native Stop hook)")
+    warn("Run /hooks in Codex if this hook is listed as untrusted")
 
 divider()
 print(f"\n  {G}{B}✓ Done!{R} stopwatch is ready.\n")

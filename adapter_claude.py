@@ -24,6 +24,20 @@ def extract_text(content):
     return ""
 
 
+_INJECTED_PREFIXES = (
+    "<task-notification>",
+    "<system-reminder>",
+    "<local-command-caveat>",
+    "<command-name>",
+    "<command-message>",
+)
+
+
+def _is_injected(text):
+    t = text.strip()
+    return any(t.startswith(p) for p in _INJECTED_PREFIXES)
+
+
 def parse_transcript(transcript_path):
     last_user, last_assistant = "", ""
     with open(transcript_path, "r", encoding="utf-8") as f:
@@ -68,6 +82,9 @@ def main():
         last_user, last_assistant = parse_transcript(transcript_path)
     except Exception as e:
         print(f"stopwatch/claude: parse error: {e}", file=sys.stderr)
+        return
+
+    if not last_user or _is_injected(last_user):
         return
 
     project = os.path.basename(cwd.rstrip("/")) if cwd else "unknown"
