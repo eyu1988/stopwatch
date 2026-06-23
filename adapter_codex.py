@@ -31,6 +31,13 @@ CODEX_SESSIONS_DIR = os.path.join(CODEX_HOME, "sessions")
 POLL_SECONDS = float(os.environ.get("STOPWATCH_CODEX_POLL_SECONDS", "2.5"))
 POLL_INTERVAL = 0.25
 
+_INJECTED_PREFIXES = ("<stage_prompt_",)
+
+
+def _is_injected(text):
+    t = text.strip()
+    return any(t.startswith(p) for p in _INJECTED_PREFIXES)
+
 
 def _norm_path(path):
     return os.path.realpath(os.path.expanduser(path)) if path else None
@@ -218,6 +225,9 @@ def main():
 
     if not last_user or not last_assistant:
         print(f"stopwatch/codex: incomplete turn in {session_path}", file=sys.stderr)
+        return
+
+    if _is_injected(last_user):
         return
 
     cwd = cwd_hint or file_cwd or os.getcwd()
